@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shinobi AR — Naruto Jutsu Lab</title>
+
+  <link rel="stylesheet" href="css/styles.css">
+
+  <!-- MediaPipe Solutions -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation/selfie_segmentation.js" crossorigin="anonymous"></script>
+</head>
+<body>
+  <!-- AR Stage Layers -->
+  <main class="stage">
+    <video id="cam" class="cam-layer" autoplay playsinline muted></video>
+    <canvas id="cam-sync-canvas" class="fx-canvas"></canvas>
+    <canvas id="aura-canvas" class="fx-canvas"></canvas>
+    <canvas id="fx-back-canvas" class="fx-canvas"></canvas>
+    <canvas id="skeleton-canvas" class="fx-canvas"></canvas>
+    <div class="vignette"></div>
+    <div id="video-fx-layer"></div>
+    <canvas id="fx-front-canvas" class="fx-canvas"></canvas>
+  </main>
+
+  <!-- Shinobi HUD -->
+  <div class="hud">
+    <header class="hud-top">
+      <div class="brand-card">
+        <div id="status-dot" class="brand-dot"></div>
+        <div>
+          <div class="brand-title">Shinobi AR // Jutsu Lab</div>
+          <div id="status-text" class="brand-sub">Initializing webcam...</div>
+        </div>
+        <div id="active-badges" class="active-badges"></div>
+      </div>
+
+      <div class="toolbar">
+        <button id="btn-guide" class="btn">Sign Guide</button>
+        <button id="btn-videos" class="btn">Custom Videos</button>
+        <button id="btn-skeleton" class="btn active">Skeleton</button>
+        <button id="btn-ai" class="btn active">AI Body/Eyes</button>
+        <button id="btn-sound" class="btn active">Sound: On</button>
+        <button id="btn-reset" class="btn">Reset Modes</button>
+        <select id="cam-select" class="btn cam-select" aria-label="Select camera" title="Select camera (e.g. OBS Virtual Camera)">
+          <option value="">Camera: Default</option>
+        </select>
+        <button id="btn-fps-cap" class="btn active" title="Toggle fixed FPS cap (60 FPS or 50 FPS)">FPS: 60</button>
+        <span id="fps-pill" class="status-pill">-- FPS</span>
+      </div>
+    </header>
+
+    <div id="jutsu-banner" class="jutsu-banner"></div>
+
+    <div id="sign-charge-wrap" class="sign-charge-wrap">
+      <div id="sign-charge-label" class="sign-charge-label">Holding Sign...</div>
+      <div class="sign-charge-track">
+        <div id="sign-charge-fill" class="sign-charge-fill"></div>
+      </div>
+    </div>
+
+    <footer class="hud-bottom">
+      <nav id="dock-wrap" class="dock-wrap" aria-label="Naruto Hand Sign Reference"></nav>
+    </footer>
+  </div>
+
+  <!-- Gesture Guide Drawer -->
+  <aside id="guide-drawer" class="drawer" aria-label="Jutsu Gesture Guide">
+    <div class="drawer-header">
+      <h2>Shinobi Hand Sign Scroll</h2>
+      <button id="btn-close-guide" class="btn">Close</button>
+    </div>
+    <p style="margin:0;font-size:12px;color:#9eb0cc;line-height:1.45;">
+      Every skill requires its own ninja hand sign on camera! Hold toggle signs (~0.4s) to turn Transformations &amp; Dōjutsu Eyes on/off. <strong>Swipe</strong> or <strong>point (☝️)</strong> to launch a charged jutsu, <strong>point or move your hand</strong> in mid-air to steer its flight direction, and hold a <strong>fist (✊)</strong> to detonate!
+    </p>
+    <div id="guide-content"></div>
+  </aside>
+
+  <!-- Custom Video VFX Drawer -->
+  <aside id="video-drawer" class="drawer" aria-label="Custom Video VFX">
+    <div class="drawer-header">
+      <h2>Custom Black-Screen VFX Videos</h2>
+      <button id="btn-close-videos" class="btn">Close</button>
+    </div>
+    <div id="drop-zone" class="drop-zone">
+      Drag &amp; drop black-background <strong>.mp4</strong> or <strong>.webm</strong> VFX clips here, or pick a file below.<br>
+      <small style="opacity:.8">All skills already run with built-in 60fps Canvas VFX + Rasengan MP4.</small>
+    </div>
+    <div id="video-slot-list"></div>
+  </aside>
+
+  <!-- Camera Fallback Overlay -->
+  <div id="camera-overlay" class="overlay-msg">
+    <div class="overlay-card">
+      <h2>Webcam Access Required</h2>
+      <p id="camera-error-msg">Waiting for camera permission...</p>
+      <p>Tip: On Windows, double-click <code>start.bat</code> or run <code>python -m http.server 8080</code> and open <code>http://localhost:8080</code>.</p>
+      <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:12px;">
+        <select id="cam-overlay-select" class="btn cam-select" aria-label="Select fallback camera" style="max-width:240px;">
+          <option value="">Camera: Default</option>
+        </select>
+        <button id="btn-retry-cam" class="btn active">Retry Camera</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Application Modules -->
+  <script defer src="js/config.js"></script>
+  <script defer src="js/jutsuRegistry.js"></script>
+  <script defer src="js/coords.js"></script>
+  <script defer src="js/audio.js"></script>
+  <script defer src="js/gestures.js"></script>
+  <script defer src="js/vfx/particles.js"></script>
+  <script defer src="js/vfx/eyes.js"></script>
+  <script defer src="js/vfx/aura.js"></script>
+  <script defer src="js/vfx/hands.js"></script>
+  <script defer src="js/vfx/projectiles.js"></script>
+  <script defer src="js/app.js"></script>
+</body>
+</html>
